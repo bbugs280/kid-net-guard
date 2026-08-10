@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0a0e27">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Kid Guard">
+<link rel="manifest" href="/static/manifest.json">
+<link rel="apple-touch-icon" href="/static/icon-192.png">
+<title>Kid Net Guard</title>
+<style>
+  :root {
+    --bg: #0a0e27;
+    --card: #131840;
+    --card-hover: #1a2058;
+    --accent: #f0a830;
+    --danger: #e05555;
+    --success: #4caf84;
+    --text: #e0e0f0;
+    --muted: #8888aa;
+    --radius: 16px;
+    --safe-bottom: env(safe-area-inset-bottom, 16px);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100dvh;
+    padding: 16px 16px calc(16px + var(--safe-bottom));
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+
+  header {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 24px;
+  }
+  header h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.3px; }
+  header .shield { font-size: 28px; }
+  .status-dot {
+    width: 8px; height: 8px; border-radius: 50%; display: inline-block;
+    margin-left: auto;
+  }
+  .status-dot.ok { background: var(--success); }
+  .status-dot.err { background: var(--danger); }
+
+  /* Toggle cards */
+  .device-section {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  .device-header {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 16px;
+  }
+  .device-icon { font-size: 32px; }
+  .device-name { font-size: 18px; font-weight: 600; }
+  .device-sub { font-size: 13px; color: var(--muted); }
+
+  .toggles {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  .toggle {
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    padding: 14px 10px;
+    border-radius: 12px;
+    background: var(--bg);
+    border: none;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+    color: var(--text);
+    font-size: 13px;
+    font-family: inherit;
+    min-height: 76px;
+  }
+  .toggle:active { transform: scale(0.97); }
+  .toggle .icon { font-size: 22px; }
+  .toggle .label { font-weight: 500; }
+  .toggle.blocked { background: #2a1020; color: var(--danger); }
+  .toggle.allowed { background: #102a1a; color: var(--success); }
+  .toggle.loading { opacity: 0.6; pointer-events: none; }
+  .toggle .state {
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  /* Pause all button */
+  .pause-all {
+    width: 100%; padding: 18px; border-radius: var(--radius);
+    border: 2px solid var(--danger);
+    background: transparent;
+    color: var(--danger);
+    font-size: 16px; font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: background 0.2s;
+    letter-spacing: -0.2px;
+  }
+  .pause-all:active { background: var(--danger); color: white; }
+
+  /* Schedules (placeholder) */
+  .section-title {
+    font-size: 14px; color: var(--muted); text-transform: uppercase;
+    letter-spacing: 0.5px; margin: 24px 0 12px;
+  }
+  .schedule-placeholder {
+    background: var(--card); border-radius: var(--radius);
+    padding: 20px; text-align: center; color: var(--muted);
+    font-size: 14px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <span class="shield">🛡️</span>
+  <h1>Kid Net Guard</h1>
+  <span class="status-dot" id="status-dot" title="Checking..."></span>
+</header>
+
+<div id="devices"></div>
+
+<button class="pause-all" id="pause-btn" onclick="pauseAll()">
+  ⏸️ Pause All Internet
+</button>
+
+<div class="section-title">⏰ Schedules</div>
+<div class="schedule-placeholder">
+  Coming soon — time-based rules for homework, bedtime, etc.
+</div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
