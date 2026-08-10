@@ -3,141 +3,298 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#0a0e27">
+<meta name="theme-color" content="#faf5ff">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Kid Guard">
 <link rel="manifest" href="/static/manifest.json">
 <link rel="apple-touch-icon" href="/static/icon-192.png">
 <title>Kid Net Guard</title>
 <style>
   :root {
-    --bg: #0a0e27;
-    --card: #131840;
-    --card-hover: #1a2058;
-    --accent: #f0a830;
-    --danger: #e05555;
-    --success: #4caf84;
-    --text: #e0e0f0;
-    --muted: #8888aa;
+    --surface: #faf5ff;
+    --surface-card: #ffffff;
+    --surface-alt: #f0eaf8;
+    --ink: #1a1033;
+    --ink-muted: #6b5e82;
+    --border: #e0d6f0;
+    
+    --accent-lavender: #7c5ce7;
+    --accent-coral: #ff6b6b;
+    --accent-mint: #2ecc87;
+    --accent-sky: #4da6ff;
+    --accent-sunset: #ff9f43;
+    --accent-rose: #e84393;
+    
+    --blocked-bg: #fff0f0;
+    --blocked-fg: #e05555;
+    --allowed-bg: #edfff5;
+    --allowed-fg: #2ea863;
+    
+    --radius-sm: 10px;
     --radius: 16px;
+    --radius-lg: 20px;
+    --shadow-card: 0 1px 3px rgba(124, 92, 231, 0.08), 0 4px 12px rgba(0,0,0,0.04);
+    --shadow-button: 0 2px 8px rgba(0,0,0,0.08);
     --safe-bottom: env(safe-area-inset-bottom, 16px);
   }
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
-
+  
   body {
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
-    background: var(--bg);
-    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif;
+    background: var(--surface);
+    color: var(--ink);
     min-height: 100dvh;
-    padding: 16px 16px calc(16px + var(--safe-bottom));
+    padding: 20px 16px calc(20px + var(--safe-bottom));
     -webkit-tap-highlight-color: transparent;
     user-select: none;
+    -webkit-user-select: none;
   }
 
-  header {
-    display: flex; align-items: center; gap: 10px;
-    margin-bottom: 24px;
+  /* ── Header ──────────────────────────────── */
+  .header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
   }
-  header h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.3px; }
-  header .shield { font-size: 28px; }
-  .status-dot {
-    width: 8px; height: 8px; border-radius: 50%; display: inline-block;
+  .logo {
+    width: 40px; height: 40px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--accent-lavender), var(--accent-coral));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+    color: white;
+  }
+  .header h1 {
+    font-size: 20px; font-weight: 700;
+    letter-spacing: -0.4px;
+    color: var(--ink);
+  }
+  .status-row {
+    display: flex; align-items: center; gap: 6px;
     margin-left: auto;
+    font-size: 12px; color: var(--ink-muted);
   }
-  .status-dot.ok { background: var(--success); }
-  .status-dot.err { background: var(--danger); }
+  .status-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--accent-mint);
+  }
+  .status-dot.err { background: var(--accent-coral); }
 
-  /* Toggle cards */
-  .device-section {
-    background: var(--card);
-    border-radius: var(--radius);
-    padding: 20px;
-    margin-bottom: 16px;
+  .subtitle {
+    font-size: 13px; color: var(--ink-muted);
+    margin-bottom: 20px;
   }
-  .device-header {
+
+  /* ── Device Card ─────────────────────────── */
+  .device-card {
+    background: var(--surface-card);
+    border-radius: var(--radius-lg);
+    padding: 18px;
+    margin-bottom: 16px;
+    box-shadow: var(--shadow-card);
+    border: 1px solid var(--border);
+  }
+  .device-top {
     display: flex; align-items: center; gap: 10px;
-    margin-bottom: 16px;
+    margin-bottom: 14px;
   }
-  .device-icon { font-size: 32px; }
-  .device-name { font-size: 18px; font-weight: 600; }
-  .device-sub { font-size: 13px; color: var(--muted); }
+  .device-avatar {
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent-sky), var(--accent-lavender));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; color: white;
+  }
+  .device-name {
+    font-size: 16px; font-weight: 650;
+    color: var(--ink);
+  }
+  .device-sub {
+    font-size: 12px; color: var(--ink-muted);
+  }
 
+  /* ── Toggle Grid ─────────────────────────── */
   .toggles {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
+    gap: 8px;
   }
   .toggle {
-    display: flex; flex-direction: column; align-items: center; gap: 6px;
-    padding: 14px 10px;
-    border-radius: 12px;
-    background: var(--bg);
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    padding: 12px 8px;
+    border-radius: var(--radius-sm);
     border: none;
     cursor: pointer;
-    transition: background 0.2s, transform 0.1s;
-    color: var(--text);
+    font-family: inherit;
     font-size: 13px;
-    font-family: inherit;
-    min-height: 76px;
+    font-weight: 550;
+    min-height: 68px;
+    transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.2s ease;
+    position: relative;
+    overflow: hidden;
   }
-  .toggle:active { transform: scale(0.97); }
-  .toggle .icon { font-size: 22px; }
-  .toggle .label { font-weight: 500; }
-  .toggle.blocked { background: #2a1020; color: var(--danger); }
-  .toggle.allowed { background: #102a1a; color: var(--success); }
-  .toggle.loading { opacity: 0.6; pointer-events: none; }
+  .toggle:active { 
+    transform: scale(0.96); 
+  }
+  .toggle .icon { font-size: 20px; margin-bottom: 2px; }
+  .toggle .label { font-weight: 550; letter-spacing: -0.2px; }
   .toggle .state {
-    font-size: 11px; font-weight: 600; text-transform: uppercase;
-    letter-spacing: 0.5px;
+    font-size: 10px; font-weight: 700; 
+    text-transform: uppercase; letter-spacing: 0.8px;
+    margin-top: 2px;
+    opacity: 0.75;
+  }
+  .toggle.loading { 
+    opacity: 0.55; pointer-events: none; 
   }
 
-  /* Pause all button */
+  /* Color by service */
+  .toggle[data-service="youtube"] { --svc-color: var(--accent-coral); }
+  .toggle[data-service="roblox"]  { --svc-color: var(--accent-coral); }
+  .toggle[data-service="minecraft"] { --svc-color: var(--accent-mint); }
+  .toggle[data-service="fortnite"] { --svc-color: var(--accent-sky); }
+  .toggle[data-service="tiktok"]   { --svc-color: var(--accent-rose); }
+  .toggle[data-service="discord"]  { --svc-color: var(--accent-lavender); }
+  .toggle[data-service="netflix"]  { --svc-color: var(--accent-coral); }
+  .toggle[data-service="whatsapp"] { --svc-color: var(--accent-mint); }
+  .toggle[data-service="twitch"]   { --svc-color: var(--accent-lavender); }
+  .toggle[data-service="spotify"]  { --svc-color: var(--accent-mint); }
+  .toggle[data-service="snapchat"] { --svc-color: var(--accent-sunset); }
+  .toggle[data-service="instagram"]{ --svc-color: var(--accent-rose); }
+  .toggle[data-service="facebook"] { --svc-color: var(--accent-sky); }
+  .toggle[data-service="steam"]    { --svc-color: var(--accent-sky); }
+  .toggle[data-service="epic_games"] { --svc-color: var(--accent-sky); }
+
+  .toggle.allowed {
+    background: var(--allowed-bg);
+    color: var(--allowed-fg);
+    box-shadow: none;
+  }
+  .toggle.allowed:hover {
+    background: #d8f5e5;
+  }
+  .toggle.blocked {
+    background: var(--blocked-bg);
+    color: var(--blocked-fg);
+    box-shadow: var(--shadow-button);
+  }
+  .toggle.blocked:hover {
+    background: #ffe5e5;
+  }
+
+  /* Toggle ripple highlight */
+  .toggle::after {
+    content: '';
+    position: absolute; inset: 0;
+    border-radius: var(--radius-sm);
+    border: 2px solid transparent;
+    transition: border-color 0.2s;
+  }
+  .toggle.blocked::after {
+    border-color: var(--blocked-fg);
+    opacity: 0.3;
+  }
+  .toggle.allowed::after {
+    border-color: var(--allowed-fg);
+    opacity: 0.2;
+  }
+
+  /* ── Pause All ───────────────────────────── */
   .pause-all {
-    width: 100%; padding: 18px; border-radius: var(--radius);
-    border: 2px solid var(--danger);
-    background: transparent;
-    color: var(--danger);
-    font-size: 16px; font-weight: 600;
-    font-family: inherit;
+    width: 100%; padding: 16px;
+    border-radius: var(--radius);
+    border: none;
+    font-family: inherit; font-size: 15px; font-weight: 650;
     cursor: pointer;
-    margin-top: 8px;
-    transition: background 0.2s;
     letter-spacing: -0.2px;
+    background: linear-gradient(135deg, var(--accent-coral), #e84360);
+    color: white;
+    box-shadow: 0 4px 14px rgba(255, 107, 107, 0.3);
+    transition: transform 0.12s ease, box-shadow 0.2s;
+    margin-bottom: 24px;
   }
-  .pause-all:active { background: var(--danger); color: white; }
+  .pause-all:active { transform: scale(0.98); }
+  .pause-all.paused {
+    background: linear-gradient(135deg, var(--accent-mint), #1ea860);
+    box-shadow: 0 4px 14px rgba(46, 204, 135, 0.3);
+  }
 
-  /* Schedules (placeholder) */
+  /* ── Schedules ───────────────────────────── */
   .section-title {
-    font-size: 14px; color: var(--muted); text-transform: uppercase;
-    letter-spacing: 0.5px; margin: 24px 0 12px;
+    font-size: 12px; font-weight: 650; 
+    text-transform: uppercase; letter-spacing: 1px;
+    color: var(--ink-muted);
+    margin-bottom: 10px;
   }
   .schedule-placeholder {
-    background: var(--card); border-radius: var(--radius);
-    padding: 20px; text-align: center; color: var(--muted);
-    font-size: 14px;
+    background: var(--surface-card);
+    border-radius: var(--radius);
+    padding: 24px 20px; text-align: center;
+    color: var(--ink-muted); font-size: 14px;
+    border: 1.5px dashed var(--border);
   }
+
+  /* ── Loading ─────────────────────────────── */
+  .loading-state {
+    text-align: center; padding: 32px; color: var(--ink-muted);
+  }
+  .spinner {
+    width: 24px; height: 24px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent-lavender);
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+    margin: 0 auto 12px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Toast ───────────────────────────────── */
+  .toast {
+    position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%);
+    background: var(--ink);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-size: 13px; font-weight: 550;
+    opacity: 0; transition: opacity 0.3s;
+    pointer-events: none;
+    z-index: 100;
+    white-space: nowrap;
+  }
+  .toast.show { opacity: 1; }
 </style>
 </head>
 <body>
 
-<header>
-  <span class="shield">🛡️</span>
+<div class="header">
+  <div class="logo">🛡️</div>
   <h1>Kid Net Guard</h1>
-  <span class="status-dot" id="status-dot" title="Checking..."></span>
-</header>
+  <div class="status-row">
+    <span class="status-dot" id="status-dot"></span>
+    <span id="status-text">Checking</span>
+  </div>
+</div>
+<p class="subtitle">Tap to toggle. Changes take effect in seconds.</p>
 
-<div id="devices"></div>
+<div id="devices">
+  <div class="loading-state">
+    <div class="spinner"></div>
+    Loading…</div>
+</div>
 
 <button class="pause-all" id="pause-btn" onclick="pauseAll()">
-  ⏸️ Pause All Internet
+  ⏸️  Pause All Internet
 </button>
 
 <div class="section-title">⏰ Schedules</div>
 <div class="schedule-placeholder">
-  Coming soon — time-based rules for homework, bedtime, etc.
+  Coming soon — Homework Mode, Bedtime, and more
 </div>
+
+<div class="toast" id="toast"></div>
 
 <script src="/static/app.js"></script>
 </body>

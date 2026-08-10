@@ -5,33 +5,56 @@
 
 const API = '/api';
 
-// ── Service Icons ──────────────────────────────────────
+// ── Service Config ────────────────────────────────────
 
-const SERVICE_ICONS = {
-  youtube: '▶️', netflix: '🎬', tiktok: '🎵', twitch: '🎮',
-  discord: '💬', facebook: '📘', snapchat: '👻', roblox: '🧱',
-  minecraft: '⛏️', fortnite: '🔫', steam: '🎮', epic_games: '🎮',
-  whatsapp: '💬', instagram: '📷', spotify: '🎵',
+const SERVICE_META = {
+  youtube:   { icon: '▶️', label: 'YouTube',   color: 'coral' },
+  roblox:    { icon: '🧱', label: 'Roblox',    color: 'coral' },
+  minecraft: { icon: '⛏️', label: 'Minecraft', color: 'mint' },
+  fortnite:  { icon: '🎯', label: 'Fortnite',  color: 'sky' },
+  tiktok:    { icon: '🎵', label: 'TikTok',    color: 'rose' },
+  discord:   { icon: '💬', label: 'Discord',   color: 'lavender' },
+  netflix:   { icon: '🎬', label: 'Netflix',   color: 'coral' },
+  whatsapp:  { icon: '💬', label: 'WhatsApp',  color: 'mint' },
+  twitch:    { icon: '🎮', label: 'Twitch',    color: 'lavender' },
+  snapchat:  { icon: '👻', label: 'Snapchat',  color: 'sunset' },
+  instagram: { icon: '📷', label: 'Instagram', color: 'rose' },
+  facebook:  { icon: '📘', label: 'Facebook',  color: 'sky' },
+  steam:     { icon: '🎮', label: 'Steam',     color: 'sky' },
+  epic_games:{ icon: '🎮', label: 'Epic',      color: 'sky' },
+  spotify:   { icon: '🎵', label: 'Spotify',   color: 'mint' },
 };
 
-function iconFor(service) {
-  return SERVICE_ICONS[service] || '🌐';
+const SHOW_SERVICES = ['youtube', 'roblox', 'minecraft', 'fortnite', 'tiktok', 'discord', 'netflix', 'whatsapp'];
+
+// ── Toast ─────────────────────────────────────────────
+
+let toastTimer;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2000);
 }
 
 // ── Render ─────────────────────────────────────────────
 
 async function loadDevices() {
   const container = document.getElementById('devices');
-  container.innerHTML = '<div class="schedule-placeholder">Loading...</div>';
 
   try {
     const r = await fetch(`${API}/devices`);
     const data = await r.json();
+    if (!data.devices || data.devices.length === 0) {
+      container.innerHTML = '<div class="loading-state">No devices configured</div>';
+      return;
+    }
 
     container.innerHTML = data.devices.map(dev => `
-      <div class="device-section">
-        <div class="device-header">
-          <span class="device-icon">📱</span>
+      <div class="device-card">
+        <div class="device-top">
+          <div class="device-avatar">📱</div>
           <div>
             <div class="device-name">${esc(dev.name)}</div>
             <div class="device-sub">${esc(dev.subtitle)}</div>
@@ -44,26 +67,23 @@ async function loadDevices() {
     `).join('');
 
   } catch (err) {
-    container.innerHTML = `<div class="schedule-placeholder" style="color:var(--danger)">
-      Could not load devices — is AdGuard Home running?
-    </div>`;
+    container.innerHTML = '<div class="loading-state" style="color:var(--accent-coral)">Could not load — is AdGuard running?</div>';
   }
 }
 
 function renderToggles(dev) {
-  // Show only the most relevant services
-  const show = ['youtube', 'roblox', 'minecraft', 'fortnite', 'tiktok', 'discord', 'netflix', 'whatsapp'];
-  return show.map(svc => {
+  return SHOW_SERVICES.map(svc => {
+    const meta = SERVICE_META[svc] || { icon: '🌐', label: svc };
     const blocked = dev.services[svc];
     const cls = blocked ? 'blocked' : 'allowed';
-    const state = blocked ? 'BLOCKED' : 'ALLOWED';
+    const stateLabel = blocked ? 'BLOCKED' : 'ALLOWED';
     return `
-      <button class="toggle ${cls}"
+      <button class="toggle ${cls}" data-service="${svc}"
               onclick="toggleService('${esc(dev.id)}', '${esc(svc)}', ${!blocked})"
               id="btn-${esc(dev.id)}-${esc(svc)}">
-        <span class="icon">${iconFor(svc)}</span>
-        <span class="label">${capitalize(svc)}</span>
-        <span class="state">${state}</span>
+        <span class="icon">${meta.icon}</span>
+        <span class="label">${meta.label}</span>
+        <span class="state">${stateLabel}</span>
       </button>
     `;
   }).join('');
@@ -76,6 +96,9 @@ async function toggleService(deviceId, service, toBlock) {
   if (!btn) return;
   btn.classList.add('loading');
 
+  const meta = SERVICE_META[service];
+  const label = meta ? meta.label : service;
+
   try {
     const action = toBlock ? 'block' : 'unblock';
     await fetch(`${API}/toggle`, {
@@ -83,10 +106,11 @@ async function toggleService(deviceId, service, toBlock) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ device_id: deviceId, service, action }),
     });
-    // Reload to get fresh state from AdGuard
+    showToast(`${toBlock ? '🚫' : '✅'} ${label} ${toBlock ? 'blocked' : 'allowed'}`);
     await loadDevices();
   } catch (err) {
     btn.classList.remove('loading');
+    showToast('⚠️ Toggle failed');
     console.error('Toggle failed:', err);
   }
 }
@@ -96,36 +120,49 @@ async function toggleService(deviceId, service, toBlock) {
 let paused = false;
 async function pauseAll() {
   const btn = document.getElementById('pause-btn');
-  const action = paused ? 'resume' : 'pause';
-  btn.textContent = '⏳ ...';
   btn.disabled = true;
+  btn.textContent = '⏳ ...';
 
   try {
+    const action = paused ? 'resume' : 'pause';
     await fetch(`${API}/pause-all`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action }),
     });
     paused = !paused;
-    btn.textContent = paused ? '▶️ Resume All Internet' : '⏸️ Pause All Internet';
-    btn.style.borderColor = paused ? 'var(--success)' : 'var(--danger)';
-    btn.style.color = paused ? 'var(--success)' : 'var(--danger)';
+    if (paused) {
+      btn.textContent = '▶️  Resume All Internet';
+      btn.classList.add('paused');
+      showToast('⏸️ All internet paused');
+    } else {
+      btn.textContent = '⏸️  Pause All Internet';
+      btn.classList.remove('paused');
+      showToast('✅ Internet resumed');
+    }
   } catch (err) {
+    showToast('⚠️ Pause failed');
     console.error('Pause failed:', err);
   } finally {
     btn.disabled = false;
   }
 }
 
-// ── Status check ───────────────────────────────────────
+// ── Status ─────────────────────────────────────────────
 
 async function checkStatus() {
   try {
     const r = await fetch(`${API}/status`);
     const s = await r.json();
     const dot = document.getElementById('status-dot');
-    dot.className = 'status-dot ' + (s.adguard_connected ? 'ok' : 'err');
-    dot.title = s.adguard_connected ? 'AdGuard connected' : 'AdGuard unreachable';
+    const text = document.getElementById('status-text');
+    if (s.adguard_connected) {
+      dot.className = 'status-dot';
+      text.textContent = 'Connected';
+    } else {
+      dot.className = 'status-dot err';
+      text.textContent = 'Offline';
+    }
   } catch (e) {
     // ignore
   }
@@ -137,16 +174,11 @@ function esc(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-function capitalize(s) {
-  return s.charAt(0).toUpperCase() + s.slice(1).replace(/_/g, ' ');
-}
-
 // ── Init ───────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', () => {
   loadDevices();
   checkStatus();
-  // Refresh every 30s to stay in sync if another parent toggles
   setInterval(loadDevices, 30000);
   setInterval(checkStatus, 30000);
 });
