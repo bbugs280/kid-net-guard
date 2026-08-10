@@ -14,8 +14,11 @@ def _ensure_client():
     """Ensure wayne-iphone client exists in AdGuard."""
     headers = {"Authorization": AUTH, "Content-Type": "application/json"}
     try:
-        r = httpx.get(f"{ADGUARD_URL}/control/clients/wayne-iphone", headers=headers, timeout=5)
-        if r.status_code == 404:
+        # Check via list endpoint (AdGuard has no GET /clients/{name})
+        r = httpx.get(f"{ADGUARD_URL}/control/clients", headers=headers, timeout=5)
+        clients = r.json().get("clients", [])
+        exists = any(c.get("name") == "wayne-iphone" for c in clients)
+        if not exists:
             payload = {"name": "wayne-iphone", "ids": ["192.168.86.0/24"]}
             r = httpx.post(f"{ADGUARD_URL}/control/clients/add", headers=headers, json=payload, timeout=5)
             print(f"Created client: {r.status_code} {r.text}")
@@ -121,34 +124,28 @@ def test_api_toggle_unblock_works():
 # ── UI tests ───────────────────────────────────────────
 
 def test_console_loads(page):
-    """PWA console should load."""
+    """PWA console should load with topbar showing Wayne."""
     page.goto(BASE_URL)
-    expect(page.locator("h1")).to_contain_text("Kid Net Guard")
+    expect(page.locator(".topbar-name")).to_contain_text("Wayne")
 
 
-def test_toggle_youtube_block_via_ui(page):
-    """RED: Clicking YouTube toggle should actually change state via API."""
+def test_toggle_slider_via_ui(page):
+    """Clicking a slider should toggle the service state."""
     page.goto(BASE_URL)
-    page.wait_for_selector(".toggle", timeout=5000)
+    page.wait_for_selector(".slider", timeout=5000)
 
-    # Find YouTube button
-    yt = page.locator(".toggle").filter(has_text="YouTube").first
-    expect(yt).to_be_visible()
+    # Find YouTube row's slider
+    yt_slider = page.locator("#slider-youtube")
+    expect(yt_slider).to_be_visible()
 
-    # Get initial state
-    initial = yt.text_content()
-    was_blocked = "BLOCKED" in initial
+    # Check initial state from the slider class
+    was_on = "on" in (yt_slider.get_attribute("class") or "")
 
-    # Click to toggle
-    yt.click()
-    page.wait_for_timeout(2500)
+    # Click the slider
+    yt_slider.click()
+    page.wait_for_timeout(2000)
 
-    # After reload, state should flip
-    yt_after = page.locator(".toggle").filter(has_text="YouTube").first
-    after = yt_after.text_content()
-    now_blocked = "BLOCKED" in after
-
-    if was_blocked:
-        assert not now_blocked, f"YouTube should now be ALLOWED but got: {after}"
-    else:
-        assert now_blocked, f"YouTube should now be BLOCKED but got: {after}"
+    # After reload, the slider should have flipped
+    yt_slider2 = page.locator("#slider-youtube")
+    is_on = "on" in (yt_slider2.get_attribute("class") or "")
+    assert is_on != was_on, f"Slider should have flipped. Was on: {was_on}, now on: {is_on}"
