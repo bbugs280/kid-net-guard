@@ -1,27 +1,13 @@
 services:
-  adguard:
-    image: adguard/adguardhome:latest
-    container_name: kidnet-adguard
-    ports:
-      - "53:53/tcp"
-      - "53:53/udp"
-      - "8081:80"
-    volumes:
-      - ./adguard/work:/opt/adguardhome/work
-      - ./adguard/conf:/opt/adguardhome/conf
-    restart: unless-stopped
-
   app:
     build: .
     container_name: kidnet-app
     ports:
       - "8082:8080"
     environment:
-      - ADGUARD_URL=http://adguard:80
-      - ADGUARD_USER=admin
-      - ADGUARD_PASS=kidnet2026
+      - SQUID_BRIDGE_URL=http://host.docker.internal:3129
     volumes:
       - ./data:/app/data
-    depends_on:
-      - adguard
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     restart: unless-stopped

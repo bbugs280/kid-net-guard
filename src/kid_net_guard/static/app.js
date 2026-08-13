@@ -32,6 +32,14 @@ const CATEGORIES = [
       { id: 'whatsapp',  icon: '💬', label: 'WhatsApp' },
       { id: 'snapchat',  icon: '👻', label: 'Snapchat' },
       { id: 'instagram', icon: '📷', label: 'Instagram' },
+      { id: 'facebook',  icon: '📘', label: 'Facebook' },
+    ]
+  },
+  {
+    id: 'other', label: '🎧 Other',
+    services: [
+      { id: 'steam',  icon: '🎮', label: 'Steam' },
+      { id: 'spotify', icon: '🎵', label: 'Spotify' },
     ]
   },
 ];
@@ -181,7 +189,7 @@ async function checkStatus() {
     const r = await fetch(`${API}/status`);
     const s = await r.json();
     const dot = document.getElementById('dot');
-    if (s.adguard_connected) {
+    if (s.proxy_connected) {
       dot.className = 'dot';
     } else {
       dot.className = 'dot off';

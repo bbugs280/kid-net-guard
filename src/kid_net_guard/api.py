@@ -1,16 +1,18 @@
 """REST API routes for the kid-net-guard PWA console.
 
-Per-client blocking approach — all devices share the same AdGuard client.
+Proxy-based filtering (Squid) is the single engine. The AdGuard DNS layer
+has been retired — selective blocking is now done at the connection level
+via the Squid proxy, controlled through the host-side bridge daemon.
 """
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from kid_net_guard.adguard import AdGuardClient
+from kid_net_guard.squid import SquidClient
 from kid_net_guard.config import settings
 
 router = APIRouter()
-client = AdGuardClient()
+client = SquidClient()
 
 # ── Models ─────────────────────────────────────────────
 
@@ -24,14 +26,11 @@ class PauseRequest(BaseModel):
     action: str  # "pause" | "resume"
 
 
-
-
-
 # ── Devices ────────────────────────────────────────────
 
 @router.get("/devices")
 async def get_devices():
-    """Return all managed devices with their toggle states."""
+    """Return all managed devices with their block states."""
     try:
         services = await client.get_client_services()
     except Exception:
@@ -53,7 +52,7 @@ async def get_devices():
 
 @router.post("/toggle")
 async def toggle_service(req: ToggleRequest):
-    """Block or unblock a service."""
+    """Block or unblock a service through the proxy."""
     device = next((d for d in settings.DEVICES if d["id"] == req.device_id), None)
     if not device:
         raise HTTPException(404, f"Device not found: {req.device_id}")
@@ -72,7 +71,7 @@ async def toggle_service(req: ToggleRequest):
 
 @router.post("/pause-all")
 async def pause_all(req: PauseRequest):
-    """Emergency pause: cut ALL internet (catch-all rule), or resume."""
+    """Block or resume all services through the proxy."""
     if req.action == "pause":
         await client.pause_all()
         return {"status": "paused"}
@@ -87,16 +86,8 @@ async def pause_all(req: PauseRequest):
 
 @router.get("/status")
 async def get_status():
-    try:
-        status = await client.get_status()
-        return {
-            "adguard_connected": True,
-            "protection_enabled": status.get("protection_enabled", False),
-            "version": settings.VERSION,
-        }
-    except Exception:
-        return {
-            "adguard_connected": False,
-            "protection_enabled": False,
-            "version": settings.VERSION,
-        }
+    status = await client.get_status()
+    return {
+        "proxy_connected": status.get("connected", False),
+        "version": settings.VERSION,
+    }

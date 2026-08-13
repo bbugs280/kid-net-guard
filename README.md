@@ -2,22 +2,20 @@
 
 **Open source mobile web console for toggling kids' internet access.**
 
-Two complementary layers, both self-hosted, zero data leaves your house:
-
-1. **AdGuard Home (DNS)** — network-wide ad/malware/tracker blocking + per-service soft toggles (YouTube, Roblox, TikTok, Discord…).
-2. **Squid (proxy)** — selective *connection-level* filtering that blocks specific domains reliably (where DNS is weak against cache/DoH).
+Selective filtering via a self-hosted **Squid proxy** — blocks specific services
+(YouTube, Roblox, Discord…) at the connection level while allowing everything
+else. Zero data leaves your house.
 
 ## How It Works
 
 ```
-Your phone → PWA console → AdGuard Home API → DNS blocking → Kid's device
-                     └─→ Squid proxy → connection-level domain filtering (docs/proxy.md)
+Your phone → PWA console → Squid bridge → squid.conf + reconfigure → proxy blocks
 ```
 
-1. **AdGuard Home** runs as a DNS server on your home server (Mac Mini, Raspberry Pi, anything)
-2. **Kid Net Guard** provides a mobile web console that talks to AdGuard's API
-3. **Squid** (optional) provides a proxy that filters domains at the connection level
-4. **Kid's device** points its DNS and/or proxy at the server → services get blocked/unblocked
+1. **Squid** runs as a proxy on your server (Mac Mini), filtering by domain
+2. **Squid bridge** (host daemon) exposes a control API over the console
+3. **Kid Net Guard** provides the mobile web console + API in front of it
+4. **Kid's device** points its proxy at the server → services get blocked/unblocked
 
 ## Quick Start
 
@@ -25,25 +23,23 @@ Your phone → PWA console → AdGuard Home API → DNS blocking → Kid's devic
 git clone https://github.com/bbugs280/kid-net-guard.git
 cd kid-net-guard
 cp .env.example .env
-# Edit .env — set ADGUARD_PASS to something secure
 docker compose up -d
 ```
 
 Open `http://your-server-ip:8080` on your phone. Add to home screen for a native app feel.
 
 Then on your kid's device:
-- WiFi → tap (i) → Configure DNS → Manual
-- Set DNS to your server's IP
-- Lock DNS settings with Screen Time passcode
+- WiFi → tap (i) → Configure Proxy → Manual
+- Set proxy to your server's IP, port 3128
+- Lock proxy settings with Screen Time passcode
 
 ## Features
 
 - 🎮 **One-tap toggles** — Block YouTube, Roblox, TikTok, Discord, Fortnite, and more
 - 📱 **Mobile PWA** — Add to home screen, works like a native app
 - 🛡️ **Zero data leaves your house** — Everything runs locally
-- ⏸️ **Emergency pause** — Cut all internet with one button (catch-all rule)
-- 🌐 **Selective proxy filtering** — Reliable domain-level blocking via Squid (see `docs/proxy.md`)
-- ⏰ **Schedules** (coming soon) — Homework mode, bedtime rules
+- ⏸️ **Emergency pause** — Block all services with one button
+- 🌐 **Connection-level filtering** — Blocks the *app* (not just DNS), survives cache/DoH
 - 🆓 **Free and open source** — MIT license
 
 ## Architecture
@@ -55,9 +51,9 @@ Then on your kid's device:
 └──────────┬───────────┘
            │ REST API
 ┌──────────▼───────────┐     ┌──────────────────────┐
-│     AdGuard Home      │     │   Squid (proxy)      │
-│     (separate)        │     │   (optional layer)   │
-│      DNS filtering    │     │   connection-level   │
+│   Squid Bridge        │     │   Squid proxy        │
+│   (host daemon :3129) │────▶│   (host :3128)       │
+│   rewrites squid.conf │     │   connection-level   │
 └───────────────────────┘     │   domain filtering   │
                               └──────────────────────┘
 ```
@@ -66,8 +62,7 @@ Then on your kid's device:
 
 - **Backend:** Python 3.11, FastAPI, httpx
 - **Frontend:** Vanilla HTML/CSS/JS, PWA manifest, service worker
-- **DNS Engine:** AdGuard Home (Docker)
-- **Proxy Engine:** Squid 7 (optional, `docs/proxy.md`)
+- **Proxy Engine:** Squid 7 (see `docs/proxy.md`) + host bridge daemon
 - **No build step, no framework, no npm**
 
 ## Development

@@ -1,4 +1,7 @@
-"""kid-net-guard — Open source parental internet toggle console."""
+"""kid-net-guard — Open source parental internet toggle console.
+
+Proxy-based (Squid) selective filtering via a host-side bridge daemon.
+"""
 
 from contextlib import asynccontextmanager
 
@@ -7,19 +10,15 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
 from kid_net_guard.api import router as api_router
-from kid_net_guard.adguard import AdGuardClient
 from kid_net_guard.config import settings
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Startup: ensure AdGuard protection is on and client exists."""
-    client = AdGuardClient()
-    try:
-        await client.ensure_protection_enabled()
-    except Exception:
-        pass  # AdGuard might not be ready yet — API startup handler will retry
-    yield  # Shutdown: nothing to clean up
+    # The Squid proxy runs on the host and is controlled via the bridge daemon
+    # (scripts/squid_bridge.py). Nothing to initialize here — the app simply
+    # proxies toggle requests to the bridge over HTTP.
+    yield
 
 
 app = FastAPI(title="Kid Net Guard", version=settings.VERSION, lifespan=lifespan)

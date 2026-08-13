@@ -10,10 +10,13 @@ class Settings:
     VERSION: str = (Path(__file__).parent.parent.parent / "VERSION").read_text().strip()
     STATIC_DIR: Path = Path(__file__).parent / "static"
 
-    # AdGuard Home connection
+    # AdGuard Home connection (legacy — retained for reference; proxy is primary)
     ADGUARD_URL: str = os.getenv("ADGUARD_URL", "http://adguard:80")
     ADGUARD_USER: str = os.getenv("ADGUARD_USER", "admin")
     ADGUARD_PASS: str = os.getenv("ADGUARD_PASS", "")
+
+    # Squid bridge (host-side daemon that controls the proxy)
+    SQUID_BRIDGE_URL: str = os.getenv("SQUID_BRIDGE_URL", "http://host.docker.internal:3129")
 
     # Console auth
     CONSOLE_PASSWORD: str = os.getenv("CONSOLE_PASSWORD", "changeme")
