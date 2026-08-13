@@ -13,7 +13,7 @@ const CATEGORIES = [
     services: [
       { id: 'roblox',    icon: '🧱', label: 'Roblox' },
       { id: 'minecraft', icon: '⛏️', label: 'Minecraft' },
-      { id: 'fortnite',  icon: '🎯', label: 'Fortnite' },
+      { id: 'epic_games',  icon: '🎯', label: 'Fortnite' },
     ]
   },
   {
@@ -163,9 +163,9 @@ async function pauseAll() {
       body: JSON.stringify({ action }),
     });
     paused = !paused;
-    btn.textContent = paused ? '▶️  Resume All Internet' : '⏸️  Pause All Internet';
+    btn.textContent = paused ? '▶️  Resume Internet' : '⏸️  Pause All Internet';
     btn.classList.toggle('paused', paused);
-    toast(paused ? '⏸️ All internet paused' : '✅ Internet resumed');
+    toast(paused ? '⏸️ All internet cut off' : '✅ Internet restored');
   } catch (err) {
     toast('⚠️ Pause failed');
     console.error(err);

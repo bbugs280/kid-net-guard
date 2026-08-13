@@ -1,5 +1,5 @@
 // Service worker — cache-first for the PWA shell
-const CACHE = 'kidnet-v0.1.0';
+const CACHE = 'kidnet-v0.1.1';
 const SHELL = ['/', '/static/app.js', '/static/manifest.json'];
 
 self.addEventListener('install', e => {
