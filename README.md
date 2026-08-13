@@ -2,17 +2,22 @@
 
 **Open source mobile web console for toggling kids' internet access.**
 
-Built on AdGuard Home. One `docker compose up`. Toggle YouTube, Roblox, TikTok, and more from your phone — no apps, no subscriptions, no data leaves your house.
+Two complementary layers, both self-hosted, zero data leaves your house:
+
+1. **AdGuard Home (DNS)** — network-wide ad/malware/tracker blocking + per-service soft toggles (YouTube, Roblox, TikTok, Discord…).
+2. **Squid (proxy)** — selective *connection-level* filtering that blocks specific domains reliably (where DNS is weak against cache/DoH).
 
 ## How It Works
 
 ```
 Your phone → PWA console → AdGuard Home API → DNS blocking → Kid's device
+                     └─→ Squid proxy → connection-level domain filtering (docs/proxy.md)
 ```
 
 1. **AdGuard Home** runs as a DNS server on your home server (Mac Mini, Raspberry Pi, anything)
 2. **Kid Net Guard** provides a mobile web console that talks to AdGuard's API
-3. **Kid's device** points its DNS to AdGuard → services get blocked/unblocked instantly
+3. **Squid** (optional) provides a proxy that filters domains at the connection level
+4. **Kid's device** points its DNS and/or proxy at the server → services get blocked/unblocked
 
 ## Quick Start
 
@@ -36,7 +41,8 @@ Then on your kid's device:
 - 🎮 **One-tap toggles** — Block YouTube, Roblox, TikTok, Discord, Fortnite, and more
 - 📱 **Mobile PWA** — Add to home screen, works like a native app
 - 🛡️ **Zero data leaves your house** — Everything runs locally
-- ⏸️ **Emergency pause** — Kill all internet with one button
+- ⏸️ **Emergency pause** — Cut all internet with one button (catch-all rule)
+- 🌐 **Selective proxy filtering** — Reliable domain-level blocking via Squid (see `docs/proxy.md`)
 - ⏰ **Schedules** (coming soon) — Homework mode, bedtime rules
 - 🆓 **Free and open source** — MIT license
 
@@ -48,10 +54,12 @@ Then on your kid's device:
 │   FastAPI + vanilla JS │
 └──────────┬───────────┘
            │ REST API
-┌──────────▼───────────┐
-│     AdGuard Home      │  ← DNS filtering engine
-│     (separate)        │     25K+ GitHub stars
-└───────────────────────┘
+┌──────────▼───────────┐     ┌──────────────────────┐
+│     AdGuard Home      │     │   Squid (proxy)      │
+│     (separate)        │     │   (optional layer)   │
+│      DNS filtering    │     │   connection-level   │
+└───────────────────────┘     │   domain filtering   │
+                              └──────────────────────┘
 ```
 
 ## Tech Stack
@@ -59,6 +67,7 @@ Then on your kid's device:
 - **Backend:** Python 3.11, FastAPI, httpx
 - **Frontend:** Vanilla HTML/CSS/JS, PWA manifest, service worker
 - **DNS Engine:** AdGuard Home (Docker)
+- **Proxy Engine:** Squid 7 (optional, `docs/proxy.md`)
 - **No build step, no framework, no npm**
 
 ## Development
