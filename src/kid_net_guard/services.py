@@ -73,10 +73,6 @@ SERVICES = {
         ".twitchsvc.net",
         ".ext-twitch.tv",
     ],
-    "instagram": [
-        ".instagram.com",
-        ".cdninstagram.com",
-    ],
     "snapchat": [
         ".snapchat.com",
         ".sc-cdn.net",
@@ -91,6 +87,13 @@ SERVICES = {
         ".whatsapp.com",
         ".whatsapp.net",
         "wa.me",
+        ".fbcdn.net",       # WhatsApp media/CDN rides Facebook's CDN (shared Meta)
+        ".cdninstagram.com",  # some WhatsApp status media
+    ],
+    "instagram": [
+        ".instagram.com",
+        ".cdninstagram.com",
+        ".fbcdn.net",       # IG media also on Facebook CDN (shared Meta)
     ],
     "facebook": [
         ".facebook.com",

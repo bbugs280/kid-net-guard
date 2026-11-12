@@ -31,6 +31,16 @@ BRIDGE_PORT = int(os.getenv("SQUID_BRIDGE_PORT", "3129"))
 BLOCK_START = "# >>> kid-net-guard blocked services (auto-managed) >>>"
 BLOCK_END = "# <<< kid-net-guard blocked services (auto-managed) <<<"
 
+# Kill-switch: a separate http_access rule that denies ALL localnet traffic when
+# active. This makes "Pause All Internet" actually cut everything (not just the
+# 14 named services). Localhost is still allowed so the console stays reachable.
+# Marker format — a comment toggled on/off by the bridge:
+#   KILL_ACTIVE = "# >>> kid-net-guard kill-switch (auto-managed) >>>\nhttp_access deny localnet kill_switch\n# <<< kid-net-guard kill-switch (auto-managed) <<<"
+KILL_START = "# >>> kid-net-guard kill-switch (auto-managed) >>>"
+KILL_END = "# <<< kid-net-guard kill-switch (auto-managed) <<<"
+# Deny ALL localnet traffic — no separate ACL needed, reuses `localnet`.
+KILL_RULE = "http_access deny localnet"
+
 # Import the service->domain map from the package (same source of truth).
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
@@ -50,11 +60,35 @@ def _write_conf(text: str) -> None:
 
 
 def _reconfigure() -> None:
-    """Reload Squid config. Returns (rc, stderr)."""
+    """Reload Squid config (soft — keeps established connections)."""
     r = subprocess.run([SQUID_BIN, "-k", "reconfigure"],
                        capture_output=True, text=True, timeout=15)
     if r.returncode != 0:
         raise RuntimeError(r.stderr.strip() or f"squid reconfigure rc={r.returncode}")
+
+
+def _restart() -> None:
+    """Full Squid restart — DROPS all established tunnels.
+
+    We restart (not reconfigure) on every toggle so that already-open app
+    connections (e.g. a running YouTube or WhatsApp stream) are torn down and
+    the app must reconnect — hitting the new blocklist. This is the only way to
+    make toggles take effect immediately rather than "on next app launch".
+
+    IMPORTANT: Homebrew runs squid as `squid -N -d` (foreground, non-daemonized),
+    so `squid -k restart` shuts it down but does NOT respawn a daemon (squid stays
+    dead). We must use `brew services restart squid` so launchd/brew respawns it.
+    Squid re-reads the on-disk conf on start, so toggled state (including the
+    kill-switch rule) is preserved automatically.
+
+    Tradeoff: a ~2s blip for any other device routed through the proxy.
+    """
+    # Homebrew prefix may differ; resolve brew bin.
+    brew = os.getenv("BREW_BIN", "/opt/homebrew/bin/brew")
+    r = subprocess.run([brew, "services", "restart", "squid"],
+                       capture_output=True, text=True, timeout=60)
+    if r.returncode != 0:
+        raise RuntimeError(r.stderr.strip() or f"brew services restart squid rc={r.returncode}")
 
 
 def _get_blocked_services(conf: str) -> set[str]:
@@ -128,6 +162,38 @@ def _rewrite_conf(blocked_services: set[str]) -> str:
     return conf
 
 
+def _set_kill_switch(conf: str, active: bool) -> str:
+    """Insert/remove the kill-switch http_access rule.
+
+    When active, denies ALL localnet traffic (true "pause internet") while
+    leaving localhost reachable (so the console/bridge keep working).
+    """
+    block = "\n".join([
+        KILL_START,
+        KILL_RULE,
+        KILL_END,
+    ])
+
+    if active:
+        if KILL_START not in conf:
+            # Insert the kill-switch rule immediately after the
+            # `http_access deny blocked_sites` line, so it runs BEFORE the
+            # `http_access allow localnet` rule (first-match-wins ordering).
+            anchor = "http_access deny blocked_sites"
+            if anchor in conf:
+                idx = conf.index(anchor) + len(anchor)
+                conf = conf[:idx] + "\n" + block + conf[idx:]
+            else:
+                conf = conf.rstrip() + "\n\n" + block + "\n"
+    else:
+        if KILL_START in conf:
+            start = conf.index(KILL_START)
+            end = conf.index(KILL_END) + len(KILL_END)
+            conf = conf[:start] + conf[end:].lstrip("\n")
+
+    return conf
+
+
 # ── API routes ──────────────────────────────────────────
 
 @app.get("/api/squid/blocks")
@@ -163,9 +229,9 @@ async def toggle(payload: dict):
     new_conf = _rewrite_conf(currently)
     _write_conf(new_conf)
     try:
-        _reconfigure()
+        _restart()
     except RuntimeError as e:
-        raise HTTPException(500, f"reconfigure failed: {e}")
+        raise HTTPException(500, f"restart failed: {e}")
 
     return {"service": service, "status": "blocked" if action == "block" else "unblocked"}
 
@@ -173,22 +239,22 @@ async def toggle(payload: dict):
 @app.post("/api/squid/pause-all")
 async def pause_all(payload: dict):
     action = payload.get("action")
-    if action == "pause":
-        blocked = set(SERVICE_ORDER)
-        status = "paused"
-    elif action == "resume":
-        blocked = set()
-        status = "resumed"
-    else:
+    if action not in ("pause", "resume"):
         raise HTTPException(400, f"Unknown action: {action}")
 
-    new_conf = _rewrite_conf(blocked)
+    try:
+        conf = _read_conf()
+    except FileNotFoundError:
+        raise HTTPException(500, "squid.conf not found")
+
+    new_conf = _set_kill_switch(conf, active=(action == "pause"))
     _write_conf(new_conf)
     try:
-        _reconfigure()
+        _restart()
     except RuntimeError as e:
-        raise HTTPException(500, f"reconfigure failed: {e}")
-    return {"status": status}
+        raise HTTPException(500, f"restart failed: {e}")
+
+    return {"status": "paused" if action == "pause" else "resumed"}
 
 
 @app.get("/api/squid/status")
